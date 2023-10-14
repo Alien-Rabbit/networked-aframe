@@ -29,15 +29,38 @@
     <link rel="stylesheet" type="text/css" href="/css/style.css" />
   </head>
   <body>
-    <div id="chatSubmit">
-      <input type="text" id="chatInput" />
-      <button id="chatButton">Send</button>
+    <button id="burger-menu" class="burger-menu">Chat</button>
+    <div class="chat-container">
+      <div id="messages">
+        <!-- Messages will be added here -->
+      </div>
+      <div class="input-container">
+        <input type="text" id="chatInput" placeholder="Type your message..." />
+        <!-- <button id="send-button">Send</button> -->
+      </div>
     </div>
-    <!-- chat Window UI -->
-    <div id="chatUI">
-      <h4>Chat</h4>
-      <div id="messages"></div>
-    </div>
+
+    <!-- This <button> and <input> will overlay on top of the A-Frame canvas--this style is all you need.
+         Note the onclick and oninput attributes; on every call, they will run .setAttribute() for the player-info
+         component's data. NAF will keep that property in sync, since 'name' and 'color' are declared in the schema
+         of the 'player-info' component
+    -->
+    <button
+      id="color-changer"
+      style="z-index: 100; bottom: 24px; left: 24px; position: fixed"
+      onclick="let newColor = window.ntExample.randomColor();
+             document.getElementById('player').setAttribute('player-info', 'color', newColor); 
+             document.querySelector('button').style.backgroundColor = newColor;
+             document.querySelector('button').style.color = newColor;
+    "
+    >
+      ■
+    </button>
+    <input
+      id="username-overlay"
+      style="z-index: 100; bottom: 24px; left: 48px; position: fixed"
+      oninput="document.getElementById('player').setAttribute('player-info', 'name', this.value)"
+    />
     <a-scene
       networked-scene="
       room: basic-video;
@@ -119,12 +142,27 @@
           micBtnEle.textContent = micEnabled ? 'Mute Mic' : 'Unmute Mic';
         });
 
-        const btn = document.querySelector('#chatButton'); // SEND btn
+        // chat client
+        const btn = document.querySelector('#send-button'); // SEND btn
         const input = document.querySelector('#chatInput'); // input field with the text
         const log = document.querySelector('#messages'); // message logchatInput
 
+        // when you want to send a message
+        // btn.addEventListener("click", evt => {
+        //   addMsg();
+        // });
+
+        document.addEventListener('keypress', function (e) {
+          if (e.key === 'Enter') {
+            addMsg();
+          }
+        });
+
         // chat box
         function addMsg() {
+          let usernameDisplay = document.querySelector('#username-overlay').value;
+          let messages = document.querySelector('#messages');
+          let input = document.querySelector('#chatInput');
           // log your own messages
           messages.innerHTML += NAF.clientId + ': ' + input.value + '<br>';
           // broadcast the text as some unique dataType (like "chat")
@@ -133,20 +171,27 @@
           NAF.connection.subscribeToDataChannel('chat', (senderId, dataType, data, targetId) => {
             // append the data.txt to the message log
             // messages.innerHTML += senderId + ": " + data.txt + '<br>'
-            messages.innerHTML += username + ': ' + data.txt + '<br>';
+            messages.innerHTML += senderId + ': ' + data.txt + '<br>';
           });
           txt: input.value = '';
           messages.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
 
-        document.addEventListener('keypress', function (e) {
-          if (e.key === 'Enter') {
-            addMsg();
-          }
-        });
-        // when you want to send a message
-        btn.addEventListener('click', (evt) => {
-          addMsg();
+        document.addEventListener('DOMContentLoaded', function () {
+          var burgerMenu = document.getElementById('burger-menu');
+          var chatContainer = document.querySelector('.chat-container');
+
+          // Initially hide the chat container
+          chatContainer.style.display = 'none';
+
+          // Toggle the chat container's visibility when the burger menu button is clicked
+          burgerMenu.addEventListener('click', function () {
+            if (chatContainer.style.display === 'none' || chatContainer.style.display === '') {
+              chatContainer.style.display = 'grid';
+            } else {
+              chatContainer.style.display = 'none';
+            }
+          });
         });
       }
     </script>
