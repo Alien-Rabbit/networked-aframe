@@ -34,7 +34,7 @@
       room: basic-video;
       debug: true;
       adapter: easyrtc;
-      audio: false;
+      audio: true;
       video: true;
     "
     >
@@ -44,22 +44,14 @@
         <!-- Avatar -->
         <template id="avatar-template">
           <a-entity class="avatar">
-            <a-plane
+            <a-sphere
               color="#FFF"
               width="4"
               height="3"
               position="0 .6 0"
               material="side: front"
               networked-video-source
-            ></a-plane>
-            <a-plane
-              color="#FFF"
-              width="4"
-              height="3"
-              position="0 .6 0"
-              material="side: back"
-              networked-video-source
-            ></a-plane>
+            ></a-sphere>
           </a-entity>
         </template>
 
@@ -80,12 +72,13 @@
         </a-entity>
       </a-entity>
 
-      <a-entity environment="preset:arches"></a-entity>
+      <a-entity environment="preset:japan"></a-entity>
       <a-entity light="type:ambient;intensity:0.5"></a-entity>
     </a-scene>
 
     <div class="actions">
       <button id="camera-btn" type="button" class="button">Hide Camera</button>
+      <button id="mic-btn" type="button" class="button">Mute Mic</button>
     </div>
 
     <script>
@@ -103,6 +96,18 @@
           NAF.connection.adapter.enableCamera(!cameraEnabled);
           cameraEnabled = !cameraEnabled;
           cameraBtnEle.textContent = cameraEnabled ? 'Hide Camera' : 'Show Camera';
+        });
+
+        // Mic status
+        let micEnabled = true;
+        // Mic button element
+        const micBtnEle = document.getElementById('mic-btn');
+
+        // Handle mic button click (Mute and Unmute)
+        micBtnEle.addEventListener('click', function () {
+          NAF.connection.adapter.enableMicrophone(!micEnabled);
+          micEnabled = !micEnabled;
+          micBtnEle.textContent = micEnabled ? 'Mute Mic' : 'Unmute Mic';
         });
       }
     </script>
