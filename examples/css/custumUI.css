@@ -1,0 +1,71 @@
+/* Styling the chat container */
+
+#burger-menu{
+z-index:9999;
+position: fixed;
+font-size:30px;
+background-color: white !important;
+color:black !important;
+bottom: 0;
+left:24px;
+bottom:50px;
+}
+
+.chat-container {
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr; /* Single column layout */
+    grid-template-rows: 1fr auto; /* The message window and input container occupy all available space */
+    height: 25vh; /* Make the chat container fill the entire viewport height */
+}
+
+/* Styling the message window */
+#messages {
+    grid-row: 1;
+    overflow-y: scroll;
+    padding: 10px;
+    border: 1px solid #ccc;
+    background-color: #f0f0f0;
+    z-index: 10;
+    opacity: 0.8;
+}
+
+/* Styling the input container */
+.input-container {
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: 1fr auto; /* Input and send button in a single row */
+    align-items: center;
+    padding: 10px;
+    background-color: #fff;
+    border-top: 1px solid #ccc;
+    z-index: 10;
+    opacity: 0.9;
+}
+
+
+/* Styling the input field */
+#chatInput {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+/* Styling the send button */
+#send-button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#send-button:hover {
+    background-color: #0056b3;
+}
+
+

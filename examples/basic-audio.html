@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <title>Positional Audio Example — Networked-Aframe</title>
     <meta name="description" content="Positional Audio Example — Networked-Aframe" />
-
+    <link rel="stylesheet" href="css/custumUI.css" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.5.0/socket.io.slim.js"></script>
     <script src="/easyrtc/easyrtc.js"></script>
@@ -37,6 +37,16 @@
     <link rel="stylesheet" type="text/css" href="/css/style.css" />
   </head>
   <body>
+    <div id="chatSubmit">
+      <input type="text" id="chatInput" />
+      <button id="chatButton">Send</button>
+    </div>
+    <!-- chat Window UI -->
+    <div id="chatUI">
+      <h4>Chat</h4>
+      <div id="messages"></div>
+    </div>
+
     <a-scene
       networked-scene="
       room: basic-audio;
@@ -105,6 +115,36 @@
           micBtnEle.textContent = micEnabled ? 'Mute Mic' : 'Unmute Mic';
         });
       }
+
+      const btn = document.querySelector('#chatButton'); // SEND btn
+      const input = document.querySelector('#chatInput'); // input field with the text
+      const log = document.querySelector('#messages'); // message logchatInput
+
+      // chat box
+      function addMsg() {
+        // log your own messages
+        messages.innerHTML += NAF.clientId + ': ' + input.value + '<br>';
+        // broadcast the text as some unique dataType (like "chat")
+        NAF.connection.broadcastData('chat', { txt: input.value });
+        // when a "chat" type message arrives
+        NAF.connection.subscribeToDataChannel('chat', (senderId, dataType, data, targetId) => {
+          // append the data.txt to the message log
+          // messages.innerHTML += senderId + ": " + data.txt + '<br>'
+          messages.innerHTML += username + ': ' + data.txt + '<br>';
+        });
+        txt: input.value = '';
+        messages.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+
+      document.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+          addMsg();
+        }
+      });
+      // when you want to send a message
+      btn.addEventListener('click', (evt) => {
+        addMsg();
+      });
     </script>
   </body>
 </html>

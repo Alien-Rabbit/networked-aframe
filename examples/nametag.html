@@ -3,7 +3,7 @@
     <meta charset="utf-8" />
     <title>Nametag Example — Networked-Aframe</title>
     <meta name="description" content="Tracked Controllers — Networked-Aframe" />
-
+    <link rel="stylesheet" type="text/css" href="css/custumUI.css" />
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.5.0/socket.io.slim.js"></script>
@@ -36,9 +36,7 @@
         const components = NAF.schemas.getComponentsOriginal(template);
         return components;
       };
-    </script>
 
-    <script>
       window.ntExample = {
         randomColor: () => {
           return '#' + new THREE.Color(Math.random(), Math.random(), Math.random()).getHexString();
@@ -89,10 +87,72 @@
           if (this.nametag) this.nametag.setAttribute('value', this.data.name);
         }
       });
+
+      // chat client
+      const btn = document.querySelector('#send-button'); // SEND btn
+      const input = document.querySelector('#chatInput'); // input field with the text
+      const log = document.querySelector('#messages'); // message logchatInput
+
+      // when you want to send a message
+      // btn.addEventListener("click", evt => {
+      //   addMsg();
+      // });
+
+      document.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+          addMsg();
+        }
+      });
+
+      // chat box
+      function addMsg() {
+        let usernameDisplay = document.querySelector('#username-overlay').value;
+        let messages = document.querySelector('#messages');
+        let input = document.querySelector('#chatInput');
+        // log your own messages
+        messages.innerHTML += NAF.clientId + ': ' + input.value + '<br>';
+        // broadcast the text as some unique dataType (like "chat")
+        NAF.connection.broadcastData('chat', { txt: input.value });
+        // when a "chat" type message arrives
+        NAF.connection.subscribeToDataChannel('chat', (senderId, dataType, data, targetId) => {
+          // append the data.txt to the message log
+          // messages.innerHTML += senderId + ": " + data.txt + '<br>'
+          messages.innerHTML += senderId + ': ' + data.txt + '<br>';
+        });
+        txt: input.value = '';
+        messages.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        var burgerMenu = document.getElementById('burger-menu');
+        var chatContainer = document.querySelector('.chat-container');
+
+        // Initially hide the chat container
+        chatContainer.style.display = 'none';
+
+        // Toggle the chat container's visibility when the burger menu button is clicked
+        burgerMenu.addEventListener('click', function () {
+          if (chatContainer.style.display === 'none' || chatContainer.style.display === '') {
+            chatContainer.style.display = 'grid';
+          } else {
+            chatContainer.style.display = 'none';
+          }
+        });
+      });
     </script>
   </head>
 
   <body>
+    <button id="burger-menu" class="burger-menu">Chat</button>
+    <div class="chat-container">
+      <div id="messages">
+        <!-- Messages will be added here -->
+      </div>
+      <div class="input-container">
+        <input type="text" id="chatInput" placeholder="Type your message..." />
+        <!-- <button id="send-button">Send</button> -->
+      </div>
+    </div>
     <!-- This <button> and <input> will overlay on top of the A-Frame canvas--this style is all you need.
          Note the onclick and oninput attributes; on every call, they will run .setAttribute() for the player-info
          component's data. NAF will keep that property in sync, since 'name' and 'color' are declared in the schema
