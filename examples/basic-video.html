@@ -16,7 +16,7 @@
         if (!NAF.schemas.hasTemplate('#avatar-template')) {
           NAF.schemas.add({
             template: '#avatar-template',
-            components: ['position', 'rotation']
+            components: ['position', 'rotation', 'player-info']
           });
         }
         const components = NAF.schemas.getComponentsOriginal(template);
@@ -28,16 +28,32 @@
     <script src="/js/spawn-in-circle.component.js"></script>
     <link rel="stylesheet" type="text/css" href="/css/style.css" />
   </head>
+
   <body>
-    <div id="chatSubmit">
-      <input type="text" id="chatInput" />
-      <button id="chatButton">Send</button>
+    <button id="burger-menu" class="burger-menu">Chat</button>
+    <div class="chat-container">
+      <div id="messages">
+        <!-- Messages will be added here -->
+      </div>
+      <div class="input-container">
+        <input type="text" id="chatInput" placeholder="Type your message..." />
+        <!-- <button id="send-button">Send</button> -->
+      </div>
     </div>
-    <!-- chat Window UI -->
-    <div id="chatUI">
-      <h4>Chat</h4>
-      <div id="messages"></div>
-    </div>
+
+    <!-- This <button> and <input> will overlay on top of the A-Frame canvas--this style is all you need.
+         Note the onclick and oninput attributes; on every call, they will run .setAttribute() for the player-info
+         component's data. NAF will keep that property in sync, since 'name' and 'color' are declared in the schema
+         of the 'player-info' component
+    -->
+
+    <input
+      id="username-overlay"
+      style="z-index: 100; bottom: 70px; left: 48px; position: fixed"
+      placeholder="Username"
+      oninput="document.getElementById('player').setAttribute('player-info', 'name', this.value)"
+    />
+
     <a-scene
       networked-scene="
       room: basic-video;
@@ -52,8 +68,9 @@
 
         <!-- Avatar -->
         <template id="avatar-template">
-          <a-entity class="avatar">
+          <a-entity class="avatar" player-info networked-audio-source>
             <a-sphere
+              class="head"
               color="#FFF"
               width="4"
               height="3"
@@ -61,6 +78,15 @@
               material="side: front"
               networked-video-source
             ></a-sphere>
+            <!-- here we add a text component for a nametag; the value will be updated by the player-info component -->
+            <a-text
+              class="nametag"
+              value="?"
+              rotation="0 180 0"
+              position=".70 -.60 0"
+              side="double"
+              scale="1.5 1.5 1.5"
+            ></a-text>
           </a-entity>
         </template>
 
@@ -77,7 +103,7 @@
           wasd-controls
           look-controls
         >
-          <a-sphere class="head" visible="false" random-color></a-sphere>
+          <a-sphere class="head" visible="false"></a-sphere>
         </a-entity>
       </a-entity>
 
@@ -91,6 +117,58 @@
     </div>
 
     <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var burgerMenu = document.getElementById('burger-menu');
+        var chatContainer = document.querySelector('.chat-container');
+
+        // Initially hide the chat container
+        chatContainer.style.display = 'none';
+
+        // Toggle the chat container's visibility when the burger menu button is clicked
+        burgerMenu.addEventListener('click', function () {
+          if (chatContainer.style.display === 'none' || chatContainer.style.display === '') {
+            chatContainer.style.display = 'grid';
+          } else {
+            chatContainer.style.display = 'none';
+          }
+        });
+      });
+
+      AFRAME.registerComponent('player-info', {
+        // notice that color and name are both listed in the schema; NAF will only keep
+        // properties declared in the schema in sync.
+        schema: {
+          name: { type: 'string', default: 'user-' + Math.round(Math.random() * 10000) }
+        },
+
+        init: function () {
+          this.head = this.el.querySelector('.head');
+          this.nametag = this.el.querySelector('.nametag');
+
+          this.ownedByLocalUser = this.el.id === 'player';
+          if (this.ownedByLocalUser) {
+            // populate the html overlay with the correct name on init
+            this.nametagInput = document.getElementById('username-overlay');
+            this.nametagInput.value = this.data.name;
+
+            // add the initial color to the html overlay color picker button
+            document.querySelector('button').style.backgroundColor = this.data.color;
+            document.querySelector('button').style.color = this.data.color;
+          }
+        },
+
+        // here as an example, not used in current demo. Could build a user list, expanding on this.
+        listUsers: function () {
+          console.log(
+            'userlist',
+            [...document.querySelectorAll('[player-info]')].map((el) => el.components['player-info'].data.name)
+          );
+        },
+
+        update: function () {
+          if (this.nametag) this.nametag.setAttribute('value', this.data.name);
+        }
+      });
       // Camera status
       let cameraEnabled = true;
       // Camera button element
@@ -99,7 +177,6 @@
       // Called by Networked-Aframe when connected to server
       function onConnect() {
         console.log('onConnect', new Date());
-
         // Handle camera button click (Off and On)
         cameraBtnEle.addEventListener('click', function () {
           NAF.connection.adapter.enableCamera(!cameraEnabled);
@@ -119,12 +196,22 @@
           micBtnEle.textContent = micEnabled ? 'Mute Mic' : 'Unmute Mic';
         });
 
-        const btn = document.querySelector('#chatButton'); // SEND btn
+        // chat client
+        const btn = document.querySelector('#send-button'); // SEND btn
         const input = document.querySelector('#chatInput'); // input field with the text
         const log = document.querySelector('#messages'); // message logchatInput
 
+        document.addEventListener('keypress', function (e) {
+          if (e.key === 'Enter') {
+            addMsg();
+          }
+        });
+
         // chat box
         function addMsg() {
+          let usernameDisplay = document.querySelector('#username-overlay').value;
+          let messages = document.querySelector('#messages');
+          let input = document.querySelector('#chatInput');
           // log your own messages
           messages.innerHTML += NAF.clientId + ': ' + input.value + '<br>';
           // broadcast the text as some unique dataType (like "chat")
@@ -133,21 +220,11 @@
           NAF.connection.subscribeToDataChannel('chat', (senderId, dataType, data, targetId) => {
             // append the data.txt to the message log
             // messages.innerHTML += senderId + ": " + data.txt + '<br>'
-            messages.innerHTML += username + ': ' + data.txt + '<br>';
+            messages.innerHTML += senderId + ': ' + data.txt + '<br>';
           });
           txt: input.value = '';
           messages.scrollIntoView({ behavior: 'smooth', block: 'end' });
         }
-
-        document.addEventListener('keypress', function (e) {
-          if (e.key === 'Enter') {
-            addMsg();
-          }
-        });
-        // when you want to send a message
-        btn.addEventListener('click', (evt) => {
-          addMsg();
-        });
       }
     </script>
   </body>
