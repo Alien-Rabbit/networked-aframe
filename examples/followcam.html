@@ -26,7 +26,8 @@
               // In this example, we don't sync the material.color itself, like the basic example;
               // we instead sync player-info, which includes color setting + updating.
               // (you can see an example of the other pattern in the basic.html demo)
-              'player-info'
+              'player-info',
+              'player-background'
             ]
           });
         }
@@ -40,6 +41,41 @@
       window.ntExample = {
         randomColor: () => {
           return '#' + new THREE.Color(Math.random(), Math.random(), Math.random()).getHexString();
+        },
+
+        randomBackground: () => {
+          function getRandomInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min) + min); // The maximum is exclusive and the minimum is inclusive
+          }
+          let randTexture = getRandomInt(1, 5);
+          return '#' + randTexture;
+        },
+
+        uploadImage() {
+          const input = document.getElementById('imageInput');
+          const file = input.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const image = new Image();
+              image.src = e.target.result;
+              image.onload = function () {
+                const boxEntity = document.querySelector('.background-player');
+                this.texture = new THREE.Texture(image);
+                this.texture.needsUpdate = true;
+
+                // Create or update the material
+                if (boxEntity.getAttribute('material')) {
+                  boxEntity.setAttribute('material', 'src', this.texture);
+                } else {
+                  boxEntity.setAttribute('material', 'src', this.texture);
+                }
+              };
+            };
+            reader.readAsDataURL(file);
+          }
         }
       };
 
@@ -50,7 +86,6 @@
 
         init() {
           this.el.id = THREE.MathUtils.generateUUID();
-
           this.div = document.createElement('div');
           this.div.id = THREE.MathUtils.generateUUID();
           this.div.style.height = '200px';
@@ -64,6 +99,20 @@
         }
       });
 
+      AFRAME.registerComponent('player-background', {
+        schema: {
+          texture: { type: 'string', default: window.ntExample.randomBackground() }
+        },
+        init: function () {
+          this.texture = this.data.texture;
+          this.el.setAttribute('src', this.texture);
+          console.log(this.background);
+        },
+        update: function () {
+          if (this.el) this.el.setAttribute('material', 'src:', this.data.texture);
+        }
+      });
+
       AFRAME.registerComponent('player-info', {
         // notice that color and name are both listed in the schema; NAF will only keep
         // properties declared in the schema in sync.
@@ -73,10 +122,12 @@
             type: 'color', // btw: color is just a string under the hood in A-Frame
             default: window.ntExample.randomColor()
           },
-          texture: { type: 'string', default: 'img/puydesancy.jpg' }
+          texture: { type: 'string', default: window.ntExample.randomBackground() }
         },
 
         init: function () {
+          console.log(this.data);
+          this.avatar = this.el.querySelector('.avatar');
           this.head = this.el.querySelector('.head');
           this.nametag = this.el.querySelector('.nametag');
           this.background = this.el.querySelector('.background-player');
@@ -86,12 +137,9 @@
             // populate the html overlay with the correct name on init
             this.nametagInput = document.getElementById('username-overlay');
             this.nametagInput.value = this.data.name;
-            // this.background = texture;
-
             // add the initial color to the html overlay color picker button
             document.querySelector('button').style.backgroundColor = this.data.color;
             document.querySelector('button').style.color = this.data.color;
-            // this.background.setAttribute('material', 'src',  this.texture);
           }
         },
 
@@ -107,37 +155,15 @@
           this.el.setAttribute('player-info', 'color', window.ntExample.randomColor());
         },
 
+        newBackground: function () {
+          this.el.setAttribute('player-info', 'texture', window.ntExample.uploadImage());
+        },
+
         update: function () {
           if (this.head) this.head.setAttribute('material', 'color', this.data.color);
           if (this.nametag) this.nametag.setAttribute('value', this.data.name);
-          if (this.background) this.background.setAttribute('material', 'src', this.texture);
         }
       });
-
-      function uploadImage() {
-        const input = document.getElementById('imageInput');
-        const file = input.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            const image = new Image();
-            image.src = e.target.result;
-            image.onload = function () {
-              const boxEntity = document.querySelector('.background-player');
-              this.texture = new THREE.Texture(image);
-              this.texture.needsUpdate = true;
-
-              // Create or update the material
-              if (boxEntity.getAttribute('material')) {
-                boxEntity.setAttribute('material', 'src', this.texture);
-              } else {
-                boxEntity.setAttribute('material', 'src', this.texture);
-              }
-            };
-          };
-          reader.readAsDataURL(file);
-        }
-      }
     </script>
   </head>
 
@@ -157,13 +183,27 @@
     >
       ■
     </button>
-    <input
+    <button
+      id="background-changer"
+      style="z-index: 100; bottom: 54px; left: 24px; position: fixed"
+      onclick="let newBackground= window.ntExample.randomBackground();
+           document.getElementById('player').setAttribute('player-info', 'texture', newBackground); 
+           document.querySelector('.background-player').setAttribute('src', newBackground);
+           "
+    >
+      Change Background
+    </button>
+
+    <!-- UPLOAD CUSTOM IMAGE -->
+    <!-- <input
       type="file"
       id="imageInput"
       style="z-index: 100; bottom: 54px; left: 24px; position: fixed"
       accept="image/*"
-      onchange="uploadImage()"
-    />
+      onchange="let texture = window.ntExample.uploadImage();
+      document.querySelector('.background-player').setAttribute('player-info', 'texture', texture); 
+      "
+    /> -->
     <input
       id="username-overlay"
       style="z-index: 100; bottom: 24px; left: 48px; position: fixed"
@@ -203,11 +243,12 @@
               </a-sphere>
               <a-plane
                 class="background-player"
-                material="side: double; src:#background;"
+                material="side: double;"
                 color="#CCC"
                 height="1"
                 width="2"
-                position="0 0 1"
+                position="0 0 0.2"
+                player-background=""
               ></a-plane>
             </a-entity>
             <!-- here we add a text component for a nametag; the value will be updated by the player-info component -->
@@ -221,7 +262,12 @@
             ></a-text>
           </a-entity>
         </template>
-        <img id="background" src="img/puydesancy.jpg" />
+        <!-- random backgrounds -->
+        <img id="1" src="img/1.jpg" />
+        <img id="2" src="img/2.jpg" />
+        <img id="3" src="img/3.jpg" />
+        <img id="4" src="img/4.jpg" />
+        <img id="5" src="img/5.jpg" />
       </a-assets>
 
       <a-entity environment="preset:tron;" visible=""></a-entity>
